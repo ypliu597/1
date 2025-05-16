@@ -1,0 +1,67 @@
+# === 逆向模型结构配置 ===
+model:
+  node_attr_dim: 5             # 半径(2) + 形状编码(3)
+  global_attr_dim: 4           # 材料 one-hot(3) + 包层半径(1) # 注意这里是BFN用的，维度4
+  condition_dim: 6             # 参数5个 + 波长(1)
+  hidden_dim: 128              # 逆向模型隐藏维度
+  encoder_type: transformer    # 条件编码器类型
+
+# === 逆向模型训练参数 ===
+train:
+  batch_size: 16
+  epochs: 1000
+  lr: 0.001
+  sigma1_coord: 0.03
+  beta1: 1.5
+  discrete_steps: 1000
+  ckpt_dir: checkpoints/       # 逆向模型检查点
+  log_dir: logs/               # 逆向模型日志
+  # ... (其他逆向训练参数)
+
+# === 数据路径 (根据实际情况修改) ===
+data:
+  # dataset_path: dataset/graph_*.csv
+  dataset_path: core/datasets/   # 假设CSV文件在这里
+  scaler_encoder_path: shared_scalers_encoders.pkl # 共享对象的路径
+
+# === 正向模型设置 (需要修改和确认) ===
+forward_model:
+  checkpoint: saved_models_gcn/best_model.pth # 正向模型预训练检查点路径 (如果已训练)
+  model_type: EquiForwardModel # 或者 GCN，根据您最终使用的架构
+  num_node_features: 5
+  num_graph_attributes: 5      # (1波长 + 3材料 + 1光纤半径) - 保持 5
+  output_dim: 5                # (5个光学参数) - 保持 5
+  # (可选) 添加正向模型架构参数
+  hidden_dim: 256
+  num_layers: 3
+  pooling: 'mean'
+  build_edges: True       # <--- 新增：设为 True 来构建边
+  knn_k: 6                # <--- 新增：k-NN的k值 (例如6，您可以调整)
+  edge_input_dim: 1
+
+# === 正向模型训练参数 (推荐添加新部分) ===
+forward_train:
+  data_root: core/datasets/  # 与上面 data.dataset_path 对应
+  scaler_encoder_path: shared_scalers_encoders.pkl # 再次指定或从data部分继承
+  ckpt_dir: checkpoints_forward/ # 正向模型训练时保存检查点的目录
+  log_dir: logs_forward/       # 正向模型训练日志目录
+  batch_size: 16
+  epochs: 100
+  lr: 5.0e-4
+  optimizer: AdamW
+  loss_func: SmoothL1Loss
+  patience: 10
+  split_ratio: 0.8
+  num_workers: 8
+  seed: 42
+  use_wandb: True             # 是否使用 Wandb
+  # wandb_project: ForwardFiberPredictor # (可选) Wandb 项目名
+  # wandb_run_name: equi_forward_run_01 # (可选) Wandb 运行名
+  precision: '32-true'         # 训练精度
+  grad_clip: 1.0               # 梯度裁剪
+
+# === (采样和可视化配置保持不变) ===
+sample:
+  # ...
+vis:
+  # ...
